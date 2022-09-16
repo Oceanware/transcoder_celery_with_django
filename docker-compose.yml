@@ -1,0 +1,11 @@
+version: "3.8"
+
+
+services:
+
+  redis:
+    hostname: redis
+    image: redis
+    command: redis-server --appendonly yes
+    ports:
+      - "7379:6379"
