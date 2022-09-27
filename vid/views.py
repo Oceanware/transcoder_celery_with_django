@@ -15,20 +15,8 @@ def home_view(request):
         if form.is_valid():
             form.save()
 
-            video_title = form.cleaned_data['video_title']
-            vid = Video.objects.get(video_title=video_title)
-
-            # param_file = io.TextIOWrapper(request.FILES['videoz'].file)
-            # print(param_file.name)
-
-
-            transcode.delay(vid.id)
-            context = {
-                'form': form
-            }
-            return render(request, 'home.html', context)
-
     context = {
         'form': form
     }
+
     return render(request, 'home.html', context)

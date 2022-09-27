@@ -7,7 +7,7 @@ class VideoForm(ModelForm):
     class Meta:
         model = Video
         fields = '__all__'
-        exclude = ('video_status',)
+        exclude = ('video_status', 'transcode_complete', 'slug', 'video_title', 'video_description')  # remove video_title & video_description
 
     def __init__(self, *args, **kwargs):
         super(VideoForm, self).__init__(*args, **kwargs)

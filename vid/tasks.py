@@ -1,16 +1,30 @@
+from asgiref.sync import async_to_sync, sync_to_async
 from celery import shared_task
 from ffmpeg_streaming import Representation, Size, Bitrate, Formats
 import concurrent.futures as cf
 from ffmpeg_streaming import Formats
-import sys
+import sys, os
 import datetime
 import ffmpeg_streaming
 import io
 from concurrent.futures import as_completed, wait
-
+from django.conf import settings
 from vid.models import Video
-
+from channels.layers import get_channel_layer
 from celery.concurrency.thread import TaskPool
+
+
+async def send_progress(percentage, time_left):
+    channel_layer = get_channel_layer()
+    await channel_layer.group_send(
+        "admin_notifications", {
+            "type": "admin.pusher",
+            "notificationType": "notifications",
+            "event": "video_transcoding_progress",
+            "percentage": percentage,
+            "time_left": time_left
+        }
+    )
 
 
 def monitor(ffmpeg, duration, time_, time_left, process):
@@ -53,17 +67,24 @@ def monitor(ffmpeg, duration, time_, time_left, process):
     :return: None
     """
     per = round(time_ / duration * 100)
-    print("sjdsjdsjdskdsks")
+    dt_tl = datetime.timedelta(seconds=int(time_left))
     sys.stdout.write(
         "\rTranscoding...(%s%%) %s left [%s%s]" %
-        (per, datetime.timedelta(seconds=int(time_left)), '#' * per, '-' * (100 - per))
+        (per, dt_tl, '#' * per, '-' * (100 - per))
     )
     sys.stdout.flush()
+    send_progress(per, dt_tl)
 
 
 @shared_task
 def transcode(video_id):
+    print("Video id: ", video_id)
     video = Video.objects.get(id=video_id)
+    path = os.path.join(settings.MEDIA_ROOT, "videos", video.slug, "hls.m3u8")
+
+    print("video: ", video)
+    print("path: ", path)
+
     video = ffmpeg_streaming.input(video.video_file.path)
 
     # hls = video.hls(Formats.h264())
@@ -76,21 +97,6 @@ def transcode(video_id):
     hls = video.hls(Formats.h264())
     hls.representations(_360p, _480p, _720p)
 
-    path = '/home/schatz/PycharmProjects/transcoder_celery_with_django/zzz/hls.m3u8'
-
-    # exc = TaskPool(max_workers=4)
-    # exc.executor.submit(hls.output, path, monitor=monitor)
-    with cf.ProcessPoolExecutor(max_workers=4) as executor:
-        future = executor.submit(hls.output, path, monitor=monitor)
-        # confirm that the task is running
-        running = future.running()
-        done = future.done()
-        print(f'Future running={running}, done={done}')
-        # wait for the task to complete
-        wait([future])
-        # confirm that the task is done
-        running = future.running()
-        done = future.done()
-        print(f'Future running={running}, done={done}')
+    hls.output(path, monitor=monitor)
 
     return {"status": True}

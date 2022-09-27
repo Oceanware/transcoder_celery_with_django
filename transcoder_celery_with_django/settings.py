@@ -38,6 +38,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'vid.apps.VidConfig',
     'django_celery_results',
+    'daphne',
+    'channels'
 ]
 
 MIDDLEWARE = [
@@ -69,7 +71,6 @@ TEMPLATES = [
     },
 ]
 
-# WSGI_APPLICATION = 'transcoder_celery_with_django.wsgi.application'
 ASGI_APPLICATION = 'transcoder_celery_with_django.asgi.application'
 
 # Database
@@ -87,20 +88,22 @@ CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels_redis.core.RedisChannelLayer',
         'CONFIG': {
-            "hosts": [config("REDIS_URL", default="redis://localhost:6379")],
+            "hosts": [config("REDIS_URL", default="redis://localhost:6379/0")],
         },
     }
 }
 
 # CELERY
 #  Configuration Options
-CELERY_BROKER_URL = config("REDIS_URL", default="redis://localhost:6379")
+CELERY_BROKER_URL = config("REDIS_URL", default="redis://localhost:6379/1")
 CELERY_RESULT_BACKEND = 'django-db'
 CELERY_TIMEZONE = 'Africa/Dar_es_Salaam'
 CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = 30 * 60
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = 'json'
+
+VIDEO_MODEL = 'vid.models.Video'
 
 # Password validation
 # https://docs.djangoproject.com/en/4.0/ref/settings/#auth-password-validators
@@ -134,8 +137,9 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.0/howto/static-files/
 
-STATIC_URL = 'static/'
-
+STATIC_URL = '/static/'
+STATICFILES_DIRS = (os.path.join(BASE_DIR, 'static'),)
+STATIC_ROOT = BASE_DIR / "static-files"
 # Media files
 
 MEDIA_ROOT = BASE_DIR / "media-files"
