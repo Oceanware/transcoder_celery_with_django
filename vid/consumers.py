@@ -11,9 +11,7 @@ class VideoConsumer(AsyncJsonWebsocketConsumer):
         await self.accept()
         await self.channel_layer.group_add(str(user.id), self.channel_name)
 
-        print(user.id)
         if user.is_staff:
-            print('admin_notifications 1')
             await self.channel_layer.group_add("admin_notifications", self.channel_name)
 
     async def disconnect(self, code):
