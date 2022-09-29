@@ -6,4 +6,5 @@ class VidConfig(AppConfig):
     name = 'vid'
 
     def ready(self):
+        # from .signals import start_transcoding
         from .signals import start_transcoding

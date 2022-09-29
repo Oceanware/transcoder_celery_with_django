@@ -38,7 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'vid.apps.VidConfig',
     'django_celery_results',
-    'daphne',
+    # 'daphne',
     'channels'
 ]
 
@@ -71,7 +71,10 @@ TEMPLATES = [
     },
 ]
 
+WSGI_APPLICATION = 'transcoder_celery_with_django.wsgi.application'
 ASGI_APPLICATION = 'transcoder_celery_with_django.asgi.application'
+# ASGI_APPLICATION = 'transcoder_celery_with_django.routing.application'
+# ASGI_APPLICATION = 'transcoder_celery_with_django.asgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
@@ -79,7 +82,7 @@ ASGI_APPLICATION = 'transcoder_celery_with_django.asgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'NAME': str(BASE_DIR / 'db.sqlite3'),
     }
 }
 
@@ -88,7 +91,8 @@ CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels_redis.core.RedisChannelLayer',
         'CONFIG': {
-            "hosts": [config("REDIS_URL", default="redis://localhost:6379/0")],
+            # "hosts": [config("REDIS_URL", default="redis://localhost:6379/0")],
+            "hosts": [os.environ.get('REDIS_URL', default='redis://localhost:6379/0')]
         },
     }
 }

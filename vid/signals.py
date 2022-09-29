@@ -9,7 +9,7 @@ from asgiref.sync import async_to_sync, sync_to_async
 def send_progress(percentage, time_left):
     print('hii 5')
     channel_layer = get_channel_layer()
-    async_to_sync(channel_layer.group_send(
+    async_to_sync(channel_layer.group_send)(
         "admin_notifications", {
             "type": "admin.pusher",
             "notificationType": "notifications",
@@ -17,13 +17,27 @@ def send_progress(percentage, time_left):
             "percentage": percentage,
             "time_left": time_left
         }
-    ))
+    )
 
 
 @receiver(post_save, sender=Video)
 def start_transcoding(sender, instance, **kwargs):
-    print('hiii1')
     if not instance.transcode_complete:
-        print('hii 2')
         send_progress(12, "3fdgdfgd")
         transcode.delay(instance.id)
+
+
+@receiver(post_save, sender=Video)
+def start_transcoding(sender, instance, **kwargs):
+    if not instance.transcode_complete:
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            "admin_notifications", {
+                "type": "admin.pusher",
+                "notificationType": "notifications",
+                "event": "video_transcoding_progress",
+                "percentage": '12',
+                "time_left": 'time_left'
+            }
+        )
+        # transcode.delay(instance.id)

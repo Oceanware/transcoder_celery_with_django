@@ -1,9 +1,11 @@
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 from django.db import models
 from uuid import uuid4
+
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 from django.template.defaultfilters import slugify
-
-
-# Create your models here.
 
 
 def video_directory_path(instance, filename):
@@ -20,6 +22,7 @@ class Video(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     transcode_complete = models.BooleanField(default=False)
+
     def __str__(self):
         return f"{self.video_title}"
 
@@ -28,4 +31,3 @@ class Video(models.Model):
         if not self.slug:
             self.slug = slugify(self.video_title)
         return super().save(*args, **kwargs)
-
