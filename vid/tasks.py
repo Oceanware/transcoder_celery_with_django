@@ -24,37 +24,40 @@ def queue_ws_event(self, ws_channel, ws_event: dict, group=True):
         async_to_sync(channel_layer.send)(ws_channel, ws_event)
 
 
-def send_progress(percentage, time_left):
+def send_progress(percentage, time_left, vid, vname):
     queue_ws_event.delay("admin_notifications",
                          {
                              "type": "admin.pusher",
                              "notificationType": "notifications",
                              "event": "video_transcoding_progress",
-                             "percentage": percentage,
-                             "time_left": time_left
+                             "per": percentage,
+                             "time_left": time_left,
+                             "id": vid,
+                             "name": vname
                          }
                          )
 
 
-def monitor(ffmpeg, duration, time_, time_left, process):
-    per = round(time_ / duration * 100)
-    dt_tl = datetime.timedelta(seconds=int(time_left))
-    sys.stdout.write(
-        "\rTranscoding...(%s%%) %s left [%s%s]" %
-        (per, dt_tl, '#' * per, '-' * (100 - per))
-    )
-    sys.stdout.flush()
-    send_progress(per, str(dt_tl))
+def make_video_monitor(vid, vname):
+    def monitor(ffmpeg, duration, time_, time_left, process):
+        per = round(time_ / duration * 100)
+        dt_tl = datetime.timedelta(seconds=int(time_left))
+        sys.stdout.write(
+            "\rTranscoding...(%s%%) %s left [%s%s]" %
+            (per, dt_tl, '#' * per, '-' * (100 - per))
+        )
+        sys.stdout.flush()
+        send_progress(per, str(dt_tl), vid, vname)
+
+    return monitor
 
 
 @shared_task
 def transcode(video_id):
-    print("Video id: ", video_id)
+    # print("Video id: ", video_id)
     video = Video.objects.get(id=video_id)
+    vname = video.video_title
     path = os.path.join(settings.MEDIA_ROOT, "videos", video.slug, "hls.m3u8")
-
-    # print("video: ", video)
-    # print("path: ", path)
 
     video = ffmpeg_streaming.input(video.video_file.path)
 
@@ -68,6 +71,6 @@ def transcode(video_id):
     hls = video.hls(Formats.h264())
     hls.representations(_360p, _480p, _720p)
 
-    hls.output(path, monitor=monitor)
+    hls.output(path, monitor=make_video_monitor(video_id, vname))
 
     return {"status": True}
